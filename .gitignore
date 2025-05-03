@@ -1,0 +1,55 @@
+# Node modules
+node_modules/
+
+# Logs
+logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Runtime data
+pids
+*.pid
+*.seed
+*.pid.lock
+
+# Dependency directories
+jspm_packages/
+
+# Environment variables
+.env
+.env.* # 多环境配置，如 .env.development
+
+# VS Code settings
+.vscode/
+
+# Optional npm cache directory
+.npm/
+
+# Binaries
+dist/
+build/
+
+# Coverage reports
+coverage/
+
+# PM2 logs & dump files
+.pids/
+*.pm2
+*.pid
+*.log
+ecosystem.config.js # 如果你不希望上传 PM2 的配置文件
+
+# Mac系统垃圾文件
+.DS_Store
+
+# OS generated files
+Thumbs.db
+
+# IDE
+.idea/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln

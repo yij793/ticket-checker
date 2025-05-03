@@ -1,0 +1,22 @@
+{
+  "name": "ticket-checker",
+  "version": "1.0.0",
+  "main": "index.js",
+  "type": "module",
+  "scripts": {
+    "start": "node index.js",
+    "pmstart": "pm2 start pm2.config.cjs",
+    "stop": "pm2 stop visa-bot",
+    "restart": "pm2 restart visa-bot",
+    "delete": "pm2 delete visa-bot",
+    "logs": "pm2 logs visa-bot",
+    "clean": "pm2 flush"
+  },
+  "dependencies": {
+    "dotenv": "^16.3.1",
+    "puppeteer": "^21.0.0",
+    "puppeteer-extra": "^3.3.6",
+    "puppeteer-extra-plugin-stealth": "^2.11.2",
+    "twilio": "^4.14.0"
+  }
+}
