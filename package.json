@@ -10,7 +10,8 @@
     "restart": "pm2 restart visa-bot",
     "delete": "pm2 delete visa-bot",
     "logs": "pm2 logs visa-bot",
-    "clean": "pm2 flush"
+    "clean": "pm2 flush",
+    "clear-logs": "truncate -s 0 ./logs/*.log"
   },
   "dependencies": {
     "dotenv": "^16.3.1",

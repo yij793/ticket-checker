@@ -6,10 +6,10 @@ import { randomDelay, humanType, hasCaptcha } from './common.js';
 async function login(page) {
     try {
         await page.goto(process.env.LOGIN_URL, { waitUntil: 'networkidle2' });
-        await page.evaluate(() => {
-            localStorage.clear();
-            sessionStorage.clear();
-        });
+        // await page.evaluate(() => {
+        //     localStorage.clear();
+        //     sessionStorage.clear();
+        // });
         if (await hasCaptcha(page)) {
             console.warn('⚠️ 登录页出现验证码，终止登录流程');
             return;
@@ -44,6 +44,10 @@ async function login(page) {
         }
 
         await page.waitForNavigation({ waitUntil: 'networkidle2' });
+
+        if (page.url().includes('/sign_in')) {
+            throw new Error('❌ 登录后仍停留在登录页，疑似登录失败');
+        }
 
         if (page.isClosed()) {
             throw new Error('❌ 页面已关闭，可能浏览器崩溃或被检测拦截');

@@ -16,7 +16,7 @@ async function findRelatedName(targetName, page) {
 
     // 等待页面加载并确认登录状态
     await page.waitForSelector('#user_email', { timeout: 3000}).catch(() => {
-      console.warn('⚠️ 页面未找到 #user_email, 可能已跳过登录页');
+      console.warn('⚠️ 页面未找到 #user_email, 已跳过登录页');
     });
 
     // 尝试找到包含目标姓名的 continue 链接
@@ -33,7 +33,8 @@ async function findRelatedName(targetName, page) {
 
     if (continueUrl) {
       console.log('🔗 找到 Continue 按钮链接:', continueUrl);
-      await page.goto(`https://ais.usvisa-info.com${continueUrl}`, { waitUntil: 'networkidle2' });
+      // await page.goto(`https://ais.usvisa-info.com${continueUrl}`, { waitUntil: 'networkidle2' });
+      return continueUrl
     } else {
       console.error('❌ 没有找到匹配姓名的 Continue 按钮');
     }
@@ -52,7 +53,7 @@ async function findRelatedName(targetName, page) {
 async function clickAccordionAndButton(page, accordionText, buttonText) {
   try {
     // 等待 accordion 元素加载
-    await page.waitForSelector('a.accordion-title', { timeout: 5000 });
+    await page.waitForSelector('a.accordion-title', { timeout: 10000 });
     const accordionClicked = await page.evaluate((accordionText) => {
       const accordions = document.querySelectorAll('a.accordion-title');
       for (const accordion of accordions) {

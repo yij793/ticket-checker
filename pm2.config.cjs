@@ -3,7 +3,7 @@ module.exports = {
     {
       name: 'visa-bot',
       script: 'index.js',
-      watch: true,
+      watch: false,
       max_restarts: 10,
       env: {
         NODE_ENV: 'production'

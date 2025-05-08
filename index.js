@@ -56,7 +56,7 @@ async function launchBrowser() {
     await client.send('Network.clearBrowserCookies');
     await client.send('Network.clearBrowserCache');
     
-
+    await page.setCacheEnabled(false)
     return { browser, page };
 }
 
@@ -69,51 +69,87 @@ async function checkTickets(page, browser) {
 
     try {
         await login(page);
-        await findRelatedName(process.env.US_TARGET_NAME, page);
-
+        const userUrl = await findRelatedName(process.env.US_TARGET_NAME, page);
+        const newHref = userUrl.replace("continue_actions", "appointment")
         const waitForApi = page.waitForResponse(res =>
             res.url().includes('/appointment/days/94') && res.status() === 200
           );
+
+    const maxRetries = 3;
+
+    let attempt = 0;
+    let response;
+
+    while (attempt <= maxRetries) {
+        try {
+            const url = `https://ais.usvisa-info.com${newHref}`;
+            response = await page.goto(url, { waitUntil: 'networkidle2' });
+
+            if (response && response.status() !== 502) {
+            console.log(`Page loaded successfully on attempt ${attempt + 1}`);
+            break; // 成功加载，退出循环
+            }
+
+            if (attempt === maxRetries) {
+            throw new Error(`Failed after ${maxRetries + 1} attempts. Still receiving 502 for ${url}`);
+            }
+
+            const waitMinutes = attempt + 1;
+            console.warn(`Attempt ${attempt + 1} received 502. Waiting ${waitMinutes} minute(s) before retrying...`);
+            await new Promise(resolve => setTimeout(resolve, waitMinutes * 60000)); // 等待 n 分钟
+            attempt++;
+        } catch (err) {
+            if (attempt === maxRetries) {
+            console.error('Final attempt failed. 页面修理.', err.message);
+            throw err;
+            }
+            const waitMinutes = attempt + 1;
+            console.warn(`Error on attempt ${attempt + 1}. Waiting ${waitMinutes} minute(s) before retrying...`);
+            await new Promise(resolve => setTimeout(resolve, waitMinutes * 60000));
+            attempt++;
+        }
+    }
+
           
-          const clicked = await clickAccordionAndButton(page, "Reschedule Appointment", "Reschedule Appointment");
-          if (!clicked) {
-            console.error("❌ Reschedule Appointment 不存在，停止");
-            return;
-          }
-          
-          // 等待 API 响应并安全解析
-          appointmentDates = null;
-          try {
-            const response = await waitForApi;
-            const text = await response.text(); // ✅ 用 text 防止解析失败
-            appointmentDates = JSON.parse(text);
-          } catch (err) {
-            console.error("❌ 解析 API 失败:", err.message);
-          }
-          
-          if (!appointmentDates || appointmentDates.length === 0) {
-            console.error("❌ 没有捕获到预约日期");
-            return;
-          }
-          
-          console.log("✅ 捕获到预约日期:", appointmentDates.map(d => d.date));
-          
-        console.log('捕获到日期API');
+        
+        // const clicked = await clickAccordionAndButton(page, "Reschedule Appointment", "Reschedule Appointment");
+        // if (!clicked) {
+        //   console.error("❌ Reschedule Appointment 不存在，停止");
+        //   return;
+        // }
+        
+        // 等待 API 响应并安全解析
+        appointmentDates = null;
+        try {
+          const response = await waitForApi;
+          console.log("Response status", response.status())
+          const text = await response.text(); // ✅ 用 text 防止解析失败
+          appointmentDates = JSON.parse(text);
+        } catch (err) {
+            const e = new Error(`❌ 解析 API 失败: ${err}`);
+            e.reason = 'parse_fail';
+            throw e;
+        }
+        
+        if (!appointmentDates || appointmentDates.length === 0) {
+          const e2 = new Error("❌ 没有捕获到预约日期");
+          e2.reason = 'no_date';
+          throw e2;
+        }
+        
+        const timeStr3 = new Date().toLocaleTimeString('en-CA', { hour: '2-digit', minute: '2-digit', hour12: false });
+        console.log(`⏰ 当前时间: ${timeStr3}, API 开放`);
+        console.log("✅ 捕获到预约日期区间:", appointmentDates.map(d => d.date));
+        
         
 
         await rescheduleAppointment(page, appointmentDates)
 
     } catch (err) {
-        console.error('❌ 出错啦：', err);
-        stop(browser)
-    } finally {
-        await browser.close();
+        throw err;
     }
 }
 
-function stop(browser) {
-  browser.close()
-}
 
 /**
  * 无限循环+错误重启机制
@@ -121,6 +157,10 @@ function stop(browser) {
 async function startLoop() {
     while (true) {
         let browser
+        let delay_start = 180000
+        let delay_end = 300000
+        const timeStr =  new Date().toLocaleTimeString('en-CA', { hour: '2-digit', minute: '2-digit', hour12: false });
+        console.log(`⏰ 当前时间: ${timeStr}`);
         try {
             const result = await launchBrowser();
             browser = result.browser;
@@ -128,11 +168,23 @@ async function startLoop() {
             await checkTickets(page, browser);
         } catch (error) {
             console.error('🚨 脚本崩溃，正在重启：', error);
+            if (error.reason === 'parse_fail' || error.reason === 'no_date') {
+                const failDelay = 1800000 + Math.random() * 600000;
+                const timeStr2 =  new Date().toLocaleTimeString('en-CA', { hour: '2-digit', minute: '2-digit', hour12: false });
+                console.warn(`⏰ 当前时间: ${timeStr2}, API 不开放, 等待30-40分钟`);
+                const start = Date.now();
+                while (Date.now() - start < failDelay) {
+                    await new Promise(resolve => setTimeout(resolve, 10000)); // 每10秒check一次
+                }
+            }
         } finally {
-            browser.close()
+            if (browser) {
+                browser.close()
+            }
         }
-        console.log('🕒 5-8分钟后再检查...');
-        await randomDelay(300000, 480000)
+        await randomDelay(delay_start, delay_end)
+        console.log(`🕒 ${Math.floor(delay_start / 60000)} 到 ${Math.floor(delay_end / 60000)}  分钟后再检查...`);
+        
     }
 }
 
